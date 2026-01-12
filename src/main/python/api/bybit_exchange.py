@@ -49,23 +49,29 @@ class BybitExchange(BaseExchange):
                 return None
 
             # Extract data
-            price = float(ticker.get('last', 0))
-            volume_24h = float(ticker.get('quoteVolume', 0))  # 24h volume in quote currency
+            price = ticker.get('last') or ticker.get('close') or 0
+            if price is None:
+                price = 0
+            price = float(price)
+
+            volume_24h = ticker.get('quoteVolume') or 0
+            if volume_24h is None:
+                volume_24h = 0
+            volume_24h = float(volume_24h)
 
             # Open interest handling for Bybit
-            # openInterestValue is in USD for linear, in contracts for inverse
-            open_interest_value = float(oi_data.get('openInterestValue', 0))
+            # Bybit returns openInterestAmount (in base currency) but openInterestValue is None
+            # We need to calculate USD value ourselves
+            open_interest_amount = oi_data.get('openInterestAmount') or 0
+            if open_interest_amount is None:
+                open_interest_amount = 0
+            open_interest_amount = float(open_interest_amount)
 
-            # For inverse contracts, convert to USD
-            if market_type == "inverse":
-                open_interest_contracts = float(oi_data.get('openInterest', 0))
-                if open_interest_contracts > 0 and price > 0:
-                    open_interest_usd = open_interest_contracts * price
-                else:
-                    open_interest_usd = open_interest_value
+            # Calculate OI in USD by multiplying amount by current price
+            if open_interest_amount > 0 and price > 0:
+                open_interest_usd = open_interest_amount * price
             else:
-                # For linear, it's already in USD
-                open_interest_usd = open_interest_value
+                open_interest_usd = 0
 
             return MarketSnapshot(
                 symbol=symbol,
