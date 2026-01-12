@@ -52,17 +52,23 @@ def compare_snapshots(
         previous.open_interest,
         current.open_interest
     )
+    volume_change_pct = calculate_percentage_change(
+        previous.volume_24h,
+        current.volume_24h
+    )
 
     return PriceOIChange(
         symbol=current.symbol,
         exchange=current.exchange,
         price_change_pct=price_change_pct,
         oi_change_pct=oi_change_pct,
+        volume_change_pct=volume_change_pct,
         current_price=current.price,
         previous_price=previous.price,
         current_oi=current.open_interest,
         previous_oi=previous.open_interest,
         volume_24h=current.volume_24h,
+        previous_volume=previous.volume_24h,
         timestamp=current.timestamp
     )
 

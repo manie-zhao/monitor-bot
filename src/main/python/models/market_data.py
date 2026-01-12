@@ -37,11 +37,13 @@ class PriceOIChange:
     exchange: str
     price_change_pct: float  # Percentage change
     oi_change_pct: float  # Percentage change
+    volume_change_pct: float  # Percentage change
     current_price: float
     previous_price: float
     current_oi: float
     previous_oi: float
     volume_24h: float
+    previous_volume: float
     timestamp: datetime
 
     def meets_threshold(self, price_threshold: float, oi_threshold: float) -> bool:
@@ -57,7 +59,8 @@ class PriceOIChange:
         return (
             f"PriceOIChange(symbol={self.symbol}, "
             f"price_change={self.price_change_pct:.2f}%, "
-            f"oi_change={self.oi_change_pct:.2f}%)"
+            f"oi_change={self.oi_change_pct:.2f}%, "
+            f"volume_change={self.volume_change_pct:.2f}%)"
         )
 
 
@@ -139,6 +142,7 @@ class Alert:
         # Format price change with + or - sign
         price_sign = "+" if self.price_change.price_change_pct > 0 else ""
         oi_sign = "+" if self.price_change.oi_change_pct > 0 else ""
+        volume_sign = "+" if self.price_change.volume_change_pct > 0 else ""
 
         message = f"""
 {alert_emoji} *ALERT: {self.symbol}* | {exchange_name}
@@ -147,7 +151,7 @@ class Alert:
 
 *Price:* ${self.price_change.current_price:,.2f} | {price_sign}{self.price_change.price_change_pct:.2f}%
 *OI:* ${self.price_change.current_oi / 1_000_000:.2f}M USD | {oi_sign}{self.price_change.oi_change_pct:.2f}%
-*Volume (24h):* ${self.price_change.volume_24h / 1_000_000:.2f}M
+*Volume (24h):* ${self.price_change.volume_24h / 1_000_000:.2f}M | {volume_sign}{self.price_change.volume_change_pct:.2f}%
 
 ⏰ {self.timestamp.strftime('%Y-%m-%d %H:%M:%S')} UTC
 """
