@@ -74,21 +74,32 @@ def validate_config() -> bool:
 def get_exchange_config(exchange: str) -> dict:
     """
     Get exchange-specific configuration
+    Only includes API keys if they are actually set (non-empty)
     """
-    configs = {
-        "binance": {
-            "apiKey": BINANCE_API_KEY,
-            "secret": BINANCE_API_SECRET,
-            "enableRateLimit": True,
-            "options": {
-                "defaultType": "future",  # Use futures market
-            }
-        },
-        "bybit": {
-            "apiKey": BYBIT_API_KEY,
-            "secret": BYBIT_API_SECRET,
-            "enableRateLimit": True,
+    binance_config = {
+        "enableRateLimit": True,
+        "options": {
+            "defaultType": "future",  # Use futures market
         }
+    }
+
+    # Only add API keys if they're actually set
+    if BINANCE_API_KEY and BINANCE_API_SECRET:
+        binance_config["apiKey"] = BINANCE_API_KEY
+        binance_config["secret"] = BINANCE_API_SECRET
+
+    bybit_config = {
+        "enableRateLimit": True,
+    }
+
+    # Only add API keys if they're actually set
+    if BYBIT_API_KEY and BYBIT_API_SECRET:
+        bybit_config["apiKey"] = BYBIT_API_KEY
+        bybit_config["secret"] = BYBIT_API_SECRET
+
+    configs = {
+        "binance": binance_config,
+        "bybit": bybit_config
     }
 
     return configs.get(exchange, {})
