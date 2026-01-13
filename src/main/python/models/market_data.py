@@ -48,11 +48,12 @@ class PriceOIChange:
 
     def meets_threshold(self, price_threshold: float, oi_threshold: float) -> bool:
         """
-        Check if changes meet both thresholds (AND logic)
+        Check if changes meet either threshold (OR logic)
+        Alert if price change >= threshold OR OI change >= threshold
         """
         return (
             abs(self.price_change_pct) >= price_threshold
-            and abs(self.oi_change_pct) >= oi_threshold
+            or abs(self.oi_change_pct) >= oi_threshold
         )
 
     def __repr__(self) -> str:
