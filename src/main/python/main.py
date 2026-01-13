@@ -87,8 +87,13 @@ class MonitorBot:
 
         self.logger.info("✅ All services initialized successfully!")
 
-        # Send startup notification
-        await self.telegram_service.send_startup_message()
+        # Send introduction message explaining how the bot works
+        await self.telegram_service.send_introduction_message(
+            symbols_count=len(settings.SYMBOLS),
+            price_threshold=settings.PRICE_THRESHOLD,
+            oi_threshold=settings.OI_THRESHOLD,
+            scan_interval=settings.SCAN_INTERVAL
+        )
 
         # Log configuration
         self.logger.info("="*60)

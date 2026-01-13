@@ -72,6 +72,85 @@ class TelegramService:
         message = alert.format_telegram_message()
         return await self.send_message(message)
 
+    async def send_introduction_message(self, symbols_count: int, price_threshold: float, oi_threshold: float, scan_interval: int) -> bool:
+        """
+        Send a comprehensive bot introduction explaining how it works
+
+        Args:
+            symbols_count: Number of symbols being monitored
+            price_threshold: Price change threshold percentage
+            oi_threshold: OI change threshold percentage
+            scan_interval: Scan interval in seconds
+
+        Returns:
+            True if message sent successfully, False otherwise
+        """
+        message = f"""
+🤖 *Crypto Futures Monitor Bot*
+
+Welcome! I monitor cryptocurrency futures markets across Binance and Bybit, tracking price movements and Open Interest (OI) changes to identify significant market activity.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📊 *What I Monitor*
+━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+• *Markets:* Binance Futures & Bybit Futures
+• *Symbols:* {symbols_count} trading pairs
+• *Data Points:* Price, Open Interest, 24h Volume
+• *Scan Frequency:* Every {scan_interval // 60} minutes
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🚨 *Alert Triggers*
+━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+I send alerts when *either* condition is met:
+✅ Price change ≥ {price_threshold}%
+✅ OI change ≥ {oi_threshold}%
+
+You'll receive alerts for ANY significant movement!
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📈 *Market Bias Analysis*
+━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Each alert includes market bias interpretation:
+
+🟢 *Long Inflow*
+   Price ↑ + OI ↑ → New long positions opening
+
+🔴 *Short Inflow*
+   Price ↓ + OI ↑ → New short positions opening
+
+💥 *Short Squeeze*
+   Price ↑ + OI ↓ → Shorts covering/liquidating
+
+📉 *Long Liquidation*
+   Price ↓ + OI ↓ → Longs closing/liquidating
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📊 *Alert Information*
+━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Each alert shows:
+• Symbol & Exchange
+• Market bias interpretation
+• Current price & change %
+• Open Interest & change %
+• 24h volume & change %
+• Timestamp (UTC)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✅ *Bot Status*
+━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🟢 Monitoring active
+📡 Connected to exchanges
+⚡ Ready to send alerts
+
+The bot is now watching the markets!
+"""
+        return await self.send_message(message.strip())
+
     async def send_startup_message(self) -> bool:
         """
         Send a startup notification
