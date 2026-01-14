@@ -33,7 +33,7 @@ class MonitorBot:
         self.logger = setup_logging()
 
     async def initialize(self):
-        """Initialize all services"""
+        """Initialize all services with retry logic"""
         self.logger.info("="*60)
         self.logger.info(f"🤖 Monitor Bot v{settings.VERSION}")
         self.logger.info("="*60)
@@ -59,7 +59,7 @@ class MonitorBot:
             self.logger.error("Telegram connection failed. Please check your bot token and chat ID.")
             sys.exit(1)
 
-        # Initialize Market Data service
+        # Initialize Market Data service with retry logic
         self.logger.info("🔌 Initializing market data service...")
         binance_config = settings.get_exchange_config("binance")
         bybit_config = settings.get_exchange_config("bybit")
@@ -70,10 +70,62 @@ class MonitorBot:
             symbols=settings.SYMBOLS
         )
 
-        await self.market_service.initialize()
+        # Retry initialization up to 5 times
+        max_retries = 5
+        for attempt in range(1, max_retries + 1):
+            try:
+                self.logger.info(f"Attempting to initialize exchanges (attempt {attempt}/{max_retries})...")
+                await asyncio.wait_for(
+                    self.market_service.initialize(),
+                    timeout=60.0
+                )
+                break  # Success
+            except asyncio.TimeoutError:
+                self.logger.warning(f"Exchange initialization timeout (attempt {attempt}/{max_retries})")
+                if attempt < max_retries:
+                    wait_time = attempt * 10  # Exponential backoff: 10s, 20s, 30s, 40s, 50s
+                    self.logger.info(f"Waiting {wait_time}s before retry...")
+                    await asyncio.sleep(wait_time)
+                else:
+                    self.logger.error("Failed to initialize exchanges after all retries")
+                    sys.exit(1)
+            except Exception as e:
+                self.logger.warning(f"Exchange initialization error (attempt {attempt}/{max_retries}): {e}")
+                if attempt < max_retries:
+                    wait_time = attempt * 10
+                    self.logger.info(f"Waiting {wait_time}s before retry...")
+                    await asyncio.sleep(wait_time)
+                else:
+                    self.logger.error("Failed to initialize exchanges after all retries")
+                    sys.exit(1)
 
-        # Collect initial snapshots
-        await self.market_service.get_initial_snapshots()
+        # Collect initial snapshots with retry
+        for attempt in range(1, max_retries + 1):
+            try:
+                self.logger.info(f"Collecting initial snapshots (attempt {attempt}/{max_retries})...")
+                await asyncio.wait_for(
+                    self.market_service.get_initial_snapshots(),
+                    timeout=300.0
+                )
+                break  # Success
+            except asyncio.TimeoutError:
+                self.logger.warning(f"Initial snapshot collection timeout (attempt {attempt}/{max_retries})")
+                if attempt < max_retries:
+                    wait_time = attempt * 10
+                    self.logger.info(f"Waiting {wait_time}s before retry...")
+                    await asyncio.sleep(wait_time)
+                else:
+                    self.logger.error("Failed to collect initial snapshots after all retries")
+                    sys.exit(1)
+            except Exception as e:
+                self.logger.warning(f"Initial snapshot collection error (attempt {attempt}/{max_retries}): {e}")
+                if attempt < max_retries:
+                    wait_time = attempt * 10
+                    self.logger.info(f"Waiting {wait_time}s before retry...")
+                    await asyncio.sleep(wait_time)
+                else:
+                    self.logger.error("Failed to collect initial snapshots after all retries")
+                    sys.exit(1)
 
         # Initialize Monitoring Engine
         self.logger.info("🔌 Initializing monitoring engine...")
