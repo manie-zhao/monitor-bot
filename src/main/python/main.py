@@ -109,14 +109,63 @@ class MonitorBot:
     async def run(self):
         """Run the main monitoring loop"""
         self.running = True
+        consecutive_errors = 0
+        max_consecutive_errors = 5
 
         try:
             while self.running:
-                # Run scan cycle
-                await self.engine.run_scan_cycle()
+                try:
+                    # Run scan cycle with timeout
+                    await asyncio.wait_for(
+                        self.engine.run_scan_cycle(),
+                        timeout=300.0  # 5 minute timeout per scan
+                    )
 
-                # Print statistics periodically
-                await self.engine.print_statistics()
+                    # Reset error counter on successful scan
+                    consecutive_errors = 0
+
+                    # Print statistics periodically
+                    await self.engine.print_statistics()
+
+                except asyncio.TimeoutError:
+                    consecutive_errors += 1
+                    self.logger.error(f"⚠️ Scan cycle timeout (error {consecutive_errors}/{max_consecutive_errors})")
+                    if self.telegram_service:
+                        await self.telegram_service.send_error_message(
+                            f"Scan timeout - continuing monitoring (error {consecutive_errors}/{max_consecutive_errors})"
+                        )
+
+                    # If too many consecutive errors, try to reinitialize connections
+                    if consecutive_errors >= max_consecutive_errors:
+                        self.logger.error("Too many consecutive errors - reinitializing connections...")
+                        try:
+                            await self.market_service.close()
+                            await asyncio.sleep(5)
+                            await self.market_service.initialize()
+                            consecutive_errors = 0
+                            self.logger.info("✅ Connections reinitialized successfully")
+                        except Exception as reinit_error:
+                            self.logger.error(f"Failed to reinitialize: {reinit_error}")
+
+                except Exception as e:
+                    consecutive_errors += 1
+                    self.logger.error(f"⚠️ Error in scan cycle (error {consecutive_errors}/{max_consecutive_errors}): {e}", exc_info=True)
+                    if self.telegram_service:
+                        await self.telegram_service.send_error_message(
+                            f"Scan error: {str(e)[:100]} - continuing monitoring"
+                        )
+
+                    # If too many consecutive errors, try to reinitialize
+                    if consecutive_errors >= max_consecutive_errors:
+                        self.logger.error("Too many consecutive errors - reinitializing connections...")
+                        try:
+                            await self.market_service.close()
+                            await asyncio.sleep(5)
+                            await self.market_service.initialize()
+                            consecutive_errors = 0
+                            self.logger.info("✅ Connections reinitialized successfully")
+                        except Exception as reinit_error:
+                            self.logger.error(f"Failed to reinitialize: {reinit_error}")
 
                 # Wait for next scan interval
                 self.logger.info(f"⏳ Waiting {settings.SCAN_INTERVAL}s until next scan...")
@@ -131,7 +180,7 @@ class MonitorBot:
         except asyncio.CancelledError:
             self.logger.warning("Monitoring loop cancelled")
         except Exception as e:
-            self.logger.error(f"Unexpected error in monitoring loop: {e}", exc_info=True)
+            self.logger.error(f"Fatal error in monitoring loop: {e}", exc_info=True)
             if self.telegram_service:
                 await self.telegram_service.send_error_message(f"Fatal error: {str(e)}")
         finally:

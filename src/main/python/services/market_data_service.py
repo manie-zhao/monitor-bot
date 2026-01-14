@@ -109,31 +109,42 @@ class MarketDataService:
         Returns:
             List of market snapshots
         """
-        tasks = []
+        try:
+            tasks = []
 
-        # Fetch from Binance
-        for symbol in self.symbols:
-            tasks.append(self.binance.fetch_market_snapshot(symbol))
+            # Fetch from Binance
+            for symbol in self.symbols:
+                tasks.append(self.binance.fetch_market_snapshot(symbol))
 
-        # Fetch from Bybit (both linear and inverse)
-        for symbol in self.symbols:
-            tasks.append(self.bybit.fetch_linear_snapshot(symbol))
-            # For inverse, we need to convert symbol format (e.g., BTC/USDT -> BTC/USD)
-            if symbol.endswith('/USDT'):
-                inverse_symbol = symbol.replace('/USDT', '/USD')
-                tasks.append(self.bybit.fetch_inverse_snapshot(inverse_symbol))
+            # Fetch from Bybit (both linear and inverse)
+            for symbol in self.symbols:
+                tasks.append(self.bybit.fetch_linear_snapshot(symbol))
+                # For inverse, we need to convert symbol format (e.g., BTC/USDT -> BTC/USD)
+                if symbol.endswith('/USDT'):
+                    inverse_symbol = symbol.replace('/USDT', '/USD')
+                    tasks.append(self.bybit.fetch_inverse_snapshot(inverse_symbol))
 
-        # Execute all fetches concurrently
-        results = await asyncio.gather(*tasks, return_exceptions=True)
+            # Execute all fetches concurrently with timeout
+            results = await asyncio.wait_for(
+                asyncio.gather(*tasks, return_exceptions=True),
+                timeout=120.0  # 2 minute timeout for all fetches
+            )
 
-        # Filter out None values and exceptions
-        snapshots = [
-            r for r in results
-            if isinstance(r, MarketSnapshot) and r is not None
-        ]
+            # Filter out None values and exceptions
+            snapshots = [
+                r for r in results
+                if isinstance(r, MarketSnapshot) and r is not None
+            ]
 
-        print(f"📊 Fetched {len(snapshots)} market snapshots")
-        return snapshots
+            print(f"📊 Fetched {len(snapshots)} market snapshots")
+            return snapshots
+
+        except asyncio.TimeoutError:
+            print(f"⚠️ Timeout fetching snapshots - returning empty list")
+            return []
+        except Exception as e:
+            print(f"⚠️ Error fetching snapshots: {e}")
+            return []
 
     async def get_changes(self) -> List[PriceOIChange]:
         """

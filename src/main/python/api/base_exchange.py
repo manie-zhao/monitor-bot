@@ -2,6 +2,7 @@
 Base exchange wrapper for market data fetching
 Provides common interface for all exchanges using ccxt
 """
+import asyncio
 import ccxt.async_support as ccxt
 from abc import ABC, abstractmethod
 from typing import Optional
@@ -66,7 +67,13 @@ class BaseExchange(ABC):
             Ticker dictionary or None if fetch fails
         """
         try:
-            return await self.exchange.fetch_ticker(symbol)
+            return await asyncio.wait_for(
+                self.exchange.fetch_ticker(symbol),
+                timeout=10.0
+            )
+        except asyncio.TimeoutError:
+            print(f"Timeout fetching ticker for {symbol} on {self.exchange_id}")
+            return None
         except Exception as e:
             print(f"Error fetching ticker for {symbol} on {self.exchange_id}: {e}")
             return None
@@ -84,7 +91,13 @@ class BaseExchange(ABC):
         try:
             # Use exchange's open interest method if available
             if hasattr(self.exchange, 'fetch_open_interest'):
-                return await self.exchange.fetch_open_interest(symbol)
+                return await asyncio.wait_for(
+                    self.exchange.fetch_open_interest(symbol),
+                    timeout=10.0
+                )
+            return None
+        except asyncio.TimeoutError:
+            print(f"Timeout fetching OI for {symbol} on {self.exchange_id}")
             return None
         except Exception as e:
             print(f"Error fetching OI for {symbol} on {self.exchange_id}: {e}")
