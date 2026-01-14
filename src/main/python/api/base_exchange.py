@@ -69,7 +69,7 @@ class BaseExchange(ABC):
         try:
             return await asyncio.wait_for(
                 self.exchange.fetch_ticker(symbol),
-                timeout=10.0
+                timeout=30.0
             )
         except asyncio.TimeoutError:
             print(f"Timeout fetching ticker for {symbol} on {self.exchange_id}")
@@ -93,7 +93,7 @@ class BaseExchange(ABC):
             if hasattr(self.exchange, 'fetch_open_interest'):
                 return await asyncio.wait_for(
                     self.exchange.fetch_open_interest(symbol),
-                    timeout=10.0
+                    timeout=30.0
                 )
             return None
         except asyncio.TimeoutError:

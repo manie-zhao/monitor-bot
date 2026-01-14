@@ -127,7 +127,7 @@ class MarketDataService:
             # Execute all fetches concurrently with timeout
             results = await asyncio.wait_for(
                 asyncio.gather(*tasks, return_exceptions=True),
-                timeout=120.0  # 2 minute timeout for all fetches
+                timeout=300.0  # 5 minute timeout for all fetches
             )
 
             # Filter out None values and exceptions
