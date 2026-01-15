@@ -103,11 +103,12 @@ Welcome! I monitor cryptocurrency futures markets across Binance and Bybit, trac
 🚨 *Alert Triggers*
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-I send alerts when *either* condition is met:
+I send alerts when *both* conditions are met:
 ✅ Price change ≥ {price_threshold}%
+AND
 ✅ OI change ≥ {oi_threshold}%
 
-You'll receive alerts for ANY significant movement!
+This ensures only coordinated movements trigger alerts!
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━
 📈 *Market Bias Analysis*
