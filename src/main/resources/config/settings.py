@@ -28,7 +28,10 @@ SCAN_INTERVAL = int(os.getenv("SCAN_INTERVAL", "300"))  # 5 minutes in seconds
 PRICE_THRESHOLD = float(os.getenv("PRICE_THRESHOLD", "3.0"))  # 3% price change
 OI_THRESHOLD = float(os.getenv("OI_THRESHOLD", "5.0"))  # 5% OI change
 
-# Symbols to monitor
+# Symbol Discovery Mode
+USE_DYNAMIC_SYMBOLS = os.getenv("USE_DYNAMIC_SYMBOLS", "false").lower() == "true"
+
+# Symbols to monitor (used when USE_DYNAMIC_SYMBOLS is false)
 SYMBOLS_RAW = os.getenv("SYMBOLS", "BTC/USDT,ETH/USDT,SOL/USDT,BNB/USDT")
 SYMBOLS: List[str] = [s.strip() for s in SYMBOLS_RAW.split(",") if s.strip()]
 
@@ -64,7 +67,8 @@ def validate_config() -> bool:
         print("ERROR: CHAT_ID not set in .env file")
         return False
 
-    if not SYMBOLS:
+    # Only validate SYMBOLS if not using dynamic symbol discovery
+    if not USE_DYNAMIC_SYMBOLS and not SYMBOLS:
         print("ERROR: No symbols configured in .env file")
         return False
 

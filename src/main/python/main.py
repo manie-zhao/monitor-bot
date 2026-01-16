@@ -64,10 +64,31 @@ class MonitorBot:
         binance_config = settings.get_exchange_config("binance")
         bybit_config = settings.get_exchange_config("bybit")
 
+        # Determine which symbols to monitor
+        if settings.USE_DYNAMIC_SYMBOLS:
+            self.logger.info("🔍 Fetching all available symbols dynamically...")
+            from src.main.python.services.symbol_service import SymbolService
+            symbol_service = SymbolService(binance_config, bybit_config)
+
+            try:
+                discovered_symbols = await symbol_service.fetch_all_available_symbols()
+                if discovered_symbols:
+                    symbols_to_monitor = discovered_symbols
+                    self.logger.info(f"📊 Discovered {len(discovered_symbols)} symbols to monitor")
+                else:
+                    self.logger.warning("⚠️ Symbol discovery returned empty list, falling back to static symbols")
+                    symbols_to_monitor = settings.SYMBOLS
+            except Exception as e:
+                self.logger.error(f"❌ Symbol discovery failed: {e}, falling back to static symbols")
+                symbols_to_monitor = settings.SYMBOLS
+        else:
+            symbols_to_monitor = settings.SYMBOLS
+            self.logger.info(f"📋 Using static symbol list: {len(symbols_to_monitor)} symbols")
+
         self.market_service = MarketDataService(
             binance_config=binance_config,
             bybit_config=bybit_config,
-            symbols=settings.SYMBOLS
+            symbols=symbols_to_monitor
         )
 
         # Retry initialization up to 5 times
@@ -154,7 +175,12 @@ class MonitorBot:
         self.logger.info(f"Scan Interval: {settings.SCAN_INTERVAL}s ({settings.SCAN_INTERVAL // 60} minutes)")
         self.logger.info(f"Price Threshold: {settings.PRICE_THRESHOLD}%")
         self.logger.info(f"OI Threshold: {settings.OI_THRESHOLD}%")
-        self.logger.info(f"Symbols: {', '.join(settings.SYMBOLS)}")
+        self.logger.info(f"Symbol Discovery: {'Dynamic' if settings.USE_DYNAMIC_SYMBOLS else 'Static'}")
+        self.logger.info(f"Symbols Monitored: {len(symbols_to_monitor)}")
+        if len(symbols_to_monitor) <= 10:
+            self.logger.info(f"Symbol List: {', '.join(symbols_to_monitor)}")
+        else:
+            self.logger.info(f"First 10 symbols: {', '.join(symbols_to_monitor[:10])}...")
         self.logger.info(f"Exchanges: {', '.join(settings.EXCHANGES)}")
         self.logger.info("="*60)
 
