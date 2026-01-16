@@ -32,8 +32,12 @@ class SymbolService:
             List of unique symbol strings (e.g., ['BTC/USDT', 'ETH/USDT', ...])
             Returns empty list if fetching fails
         """
+        # Configure Bybit to only load linear markets (USDT perpetuals)
+        bybit_config = self.bybit_config.copy()
+        bybit_config['options'] = {'defaultType': 'linear'}
+
         binance = BinanceExchange(self.binance_config)
-        bybit = BybitExchange(self.bybit_config)
+        bybit = BybitExchange(bybit_config)
 
         try:
             # Initialize exchanges
@@ -81,9 +85,11 @@ class SymbolService:
 
             for symbol, market in markets.items():
                 # Filter for USDT perpetual futures (swap type)
+                # Exclude options: they contain ':USDT-' and dates
                 if (market.get('quote') == 'USDT' and
                     market.get('active') and
-                    market.get('type') == 'swap'):
+                    market.get('type') == 'swap' and
+                    ':' not in symbol):  # Simple check: perpetuals don't have ':' in symbol
                     symbols.add(symbol)
 
             return symbols
@@ -102,16 +108,16 @@ class SymbolService:
             Set of symbol strings
         """
         try:
-            # Set to linear market type for USDT perpetuals
-            bybit.exchange.options['defaultType'] = 'linear'
             markets = bybit.exchange.markets
             symbols = set()
 
             for symbol, market in markets.items():
                 # Filter for USDT linear perpetual futures
+                # Exclude options: they contain ':USDT-' and dates
                 if (market.get('quote') == 'USDT' and
                     market.get('active') and
-                    market.get('linear')):
+                    market.get('linear') and
+                    ':USDT-' not in symbol):  # Exclude options format
                     symbols.add(symbol)
 
             return symbols
